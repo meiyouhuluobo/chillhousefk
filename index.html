@@ -10,7 +10,8 @@
 
         /* ================= 基础设置 ================= */
         :root {
-            --candle-cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><line x1="15" y1="15" x2="85" y2="85" stroke="%2300ff00" stroke-width="5" stroke-linecap="round"/><polygon points="40,20 80,60 60,80 20,40" fill="%2300ff00" stroke="%23005500" stroke-width="2"/></svg>') 50 50, auto;
+            /* 🟢 修复：这是经过编码的绿色K线箭头，保证能显示 */
+            --candle-cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 100 100'%3E%3Cline x1='15' y1='15' x2='85' y2='85' stroke='%2300ff00' stroke-width='5' stroke-linecap='round'/%3E%3Cpolygon points='40,20 80,60 60,80 20,40' fill='%2300ff00' stroke='%23005500' stroke-width='2'/%3E%3C/svg%3E") 50 50, auto;
             --candle-cursor-active: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><line x1="15" y1="15" x2="85" y2="85" stroke="%2333ff33" stroke-width="8" stroke-linecap="round"/><polygon points="42,18 82,58 58,82 18,42" fill="%2333ff33" stroke="%23ffffff" stroke-width="3"/></svg>') 50 50, auto;
             --candle-cursor-fomo: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><line x1="15" y1="15" x2="85" y2="85" stroke="gold" stroke-width="6" stroke-linecap="round"/><polygon points="40,20 80,60 60,80 20,40" fill="gold" stroke="%23ffffff" stroke-width="2"/></svg>') 50 50, auto;
             --candle-cursor-stop: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><circle cx="50" cy="50" r="40" stroke="red" stroke-width="5" fill="none"/><line x1="20" y1="20" x2="80" y2="80" stroke="red" stroke-width="5"/></svg>') 50 50, not-allowed;
@@ -30,8 +31,8 @@
             color: #fff;
         }
         
-        body.active-cursor { cursor: var(--candle-cursor); }
-        body.active-cursor:active { cursor: var(--candle-cursor-active); }
+        body.active-cursor { cursor: var(--candle-cursor) !important; }
+        body.active-cursor:active { cursor: var(--candle-cursor-active) !important; }
 
         /* ================= 关键层级 ================= */
         #intro-layer {
@@ -364,7 +365,7 @@
         }
         @keyframes popIn { 0% { transform: scale(0); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
 
-        .end-screen { position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.96); display: none; flex-direction: column; justify-content: center; align-items: center; z-index: 9600; cursor: default; }
+        .end-screen { position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.96); display: none; flex-direction: column; justify-content: center; align-items: center; z-index: 100; cursor: default; }
         
         /* 结算标题：Impact 字体，超大 */
         .liquidated-title { 
@@ -861,9 +862,11 @@
         let introSkipped = false;
         // ★★★ 新增：连败计数器 ★★★
         let consecutiveLosses = 0;
+        // ★★★ 新增：回合ID，解决僵尸定时器 ★★★
+        let gameRoundId = 0;
 
         let state = { bossHp: 100, playerMargin: 100, score: 0, combo: 0, isGameOver: true, isRaged: false, isShielded: false, isFomo: false, isFoggy: false, isFrozen: false, isForked: false, isRugPull: false, activeGod: null };
-        let timers = { move: null, drain: null, spawn: null, event: null, fomo: null, hitRecovery: null, log: null, chat: null, hold: null, chart: null, news: null };
+        let timers = { move: null, drain: null, spawn: null, event: null, fomo: null, hitRecovery: null, log: null, chat: null, hold: null, chart: null, news: null, god: null };
 
         // ================= K线图逻辑 =================
         let candles = [];
@@ -1107,7 +1110,7 @@
             }
         });
 
-        // ================= 1. 修改资源列表 (自动生成43张推特图) =================
+        // ================= 1. 修改资源列表 (包含新视频和新图) =================
         const assetList = [
             'login_bg.jpg', 
             // 新增的神明头像 (JPG格式)：
@@ -1364,7 +1367,9 @@
         }
 
         document.getElementById('connect-btn').addEventListener('click', () => {
-            const name = document.getElementById('wallet-address').value.trim() || 'Anon Sniper';
+            
+            document.body.classList.add('active-cursor');
+const name = document.getElementById('wallet-address').value.trim() || 'Anon Sniper';
             const dict = i18n[currentLang];
             document.getElementById('player-title').innerText = `${dict.ui_margin} (${name})`;
             els.login.style.display = 'none'; els.gameBoard.style.display = 'block'; 
@@ -1438,6 +1443,9 @@
             if (state.isGameOver) return;
             const dict = i18n[currentLang];
             const eventType = getNextEventFromDeck();
+            
+            // ★★★ 核心修复：捕获当前回合ID ★★★
+            const thisRound = gameRoundId;
 
             switch(eventType) {
                 case 'rug': startRugPull(); break;
@@ -1450,14 +1458,23 @@
                     els.bubble.style.color = "#00aa00"; 
                     els.bubble.style.fontWeight = "900"; 
                     els.bubble.style.opacity = 1;
-                    setTimeout(() => { state.isFrozen = false; els.eventOverlay.style.display = 'none'; moveBoss(); }, 3000);
+                    setTimeout(() => { 
+                        if (state.isGameOver || gameRoundId !== thisRound) return; 
+                        state.isFrozen = false; els.eventOverlay.style.display = 'none'; moveBoss(); 
+                    }, 3000);
                     break;
                 case 'sec':
                     els.eventOverlay.innerText = dict.event_sec;
                     els.eventOverlay.style.color = "red"; 
                     els.eventOverlay.style.display = 'block';
-                    setTimeout(() => { if (!state.isGameOver) { document.body.classList.add('fog-mode'); state.isFoggy = true; } }, 2000);
-                    setTimeout(() => { document.body.classList.remove('fog-mode'); state.isFoggy = false; els.eventOverlay.style.display = 'none'; }, 5000);
+                    setTimeout(() => { 
+                        if (state.isGameOver || gameRoundId !== thisRound) return;
+                        if (!state.isGameOver) { document.body.classList.add('fog-mode'); state.isFoggy = true; } 
+                    }, 2000);
+                    setTimeout(() => { 
+                        if (state.isGameOver || gameRoundId !== thisRound) return;
+                        document.body.classList.remove('fog-mode'); state.isFoggy = false; els.eventOverlay.style.display = 'none'; 
+                    }, 5000);
                     break;
                 case 'fork':
                     els.eventOverlay.innerText = dict.event_fork;
@@ -1465,14 +1482,20 @@
                     els.eventOverlay.style.display = 'block';
                     state.isForked = true; sounds.fork();
                     els.clone1.style.display = 'block'; els.clone2.style.display = 'block';
-                    setTimeout(() => { state.isForked = false; els.clone1.style.display = 'none'; els.clone2.style.display = 'none'; els.eventOverlay.style.display = 'none'; }, 5000);
+                    setTimeout(() => { 
+                        if (state.isGameOver || gameRoundId !== thisRound) return;
+                        state.isForked = false; els.clone1.style.display = 'none'; els.clone2.style.display = 'none'; els.eventOverlay.style.display = 'none'; 
+                    }, 5000);
                     break;
                 case 'crash':
                     els.eventOverlay.innerText = dict.event_crash;
                     els.eventOverlay.style.color = "white"; 
                     els.eventOverlay.style.display = 'block';
                     document.body.classList.add('crash-mode');
-                    setTimeout(() => { document.body.classList.remove('crash-mode'); els.eventOverlay.style.display = 'none'; }, 4000);
+                    setTimeout(() => { 
+                        if (state.isGameOver || gameRoundId !== thisRound) return;
+                        document.body.classList.remove('crash-mode'); els.eventOverlay.style.display = 'none'; 
+                    }, 4000);
                     break;
                 case 'printer':
                     const pos = getRandomPos(80, 80);
@@ -1482,7 +1505,10 @@
                     els.eventOverlay.innerText = dict.event_printer;
                     els.eventOverlay.style.color = "#00ffff"; 
                     els.eventOverlay.style.display = 'block';
-                    setTimeout(() => { els.moneyBag.style.display = 'none'; els.eventOverlay.style.display = 'none'; }, 2000);
+                    setTimeout(() => { 
+                        if (state.isGameOver || gameRoundId !== thisRound) return;
+                        els.moneyBag.style.display = 'none'; els.eventOverlay.style.display = 'none'; 
+                    }, 2000);
                     break;
             }
         }
@@ -1497,8 +1523,11 @@
             els.eventOverlay.innerText = dict.event_rug;
             els.eventOverlay.style.color = "#ff0000"; els.eventOverlay.style.display = 'block'; els.eventOverlay.style.fontSize = "50px";
             
+            // ★★★ 核心修复：捕获当前回合ID ★★★
+            const thisRound = gameRoundId;
             setTimeout(() => {
-                if(!state.isGameOver) {
+                // 只有在回合ID未变，且游戏未结束时才执行
+                if(!state.isGameOver && gameRoundId === thisRound) {
                     state.isRugPull = false;
                     document.body.classList.remove('rug-mode');
                     els.eventOverlay.style.display = 'none';
@@ -1510,7 +1539,6 @@
         }
 
         function spawnMoneyBag() {
-            // 这个函数现在只作为事件触发的回调，不再在随机循环中调用
             if (!state.isGameOver && state.playerMargin < 60 && els.moneyBag.style.display === 'none') {
                 const dict = i18n[currentLang];
                 const pos = getRandomPos(80, 80);
@@ -1518,7 +1546,13 @@
                 els.moneyBag.style.display = 'block';
                 els.eventOverlay.innerText = dict.event_printer;
                 els.eventOverlay.style.color = "#00ffff"; els.eventOverlay.style.display = 'block';
-                setTimeout(() => { els.moneyBag.style.display = 'none'; els.eventOverlay.style.display = 'none'; }, 2000);
+                
+                // ★★★ 核心修复：捕获当前回合ID ★★★
+                const thisRound = gameRoundId;
+                setTimeout(() => { 
+                    if (state.isGameOver || gameRoundId !== thisRound) return;
+                    els.moneyBag.style.display = 'none'; els.eventOverlay.style.display = 'none'; 
+                }, 2000);
             }
         }
 
@@ -1530,7 +1564,11 @@
                 state.isFomo = true; document.body.classList.add('fomo-mode'); sounds.fomo();
                 els.statusText.innerText = dict.status_fomo; els.statusText.style.color = "gold";
                 clearTimeout(timers.fomo);
+                
+                // ★★★ 核心修复：捕获当前回合ID ★★★
+                const thisRound = gameRoundId;
                 timers.fomo = setTimeout(() => {
+                    if (gameRoundId !== thisRound) return;
                     state.isFomo = false; document.body.classList.remove('fomo-mode');
                     els.statusText.innerText = dict.status_safu; els.statusText.style.color = "#00ff00";
                     state.combo = 0; els.combo.innerText = 0;
@@ -1784,6 +1822,7 @@
             clearInterval(timers.event);
             clearInterval(timers.log); 
             clearInterval(timers.chat); 
+            clearInterval(timers.god); // 清理神明循环
             clearTimeout(timers.fomo);
             clearTimeout(timers.hitRecovery);
             
@@ -1797,6 +1836,10 @@
             document.querySelectorAll('.influencer-card').forEach(el => el.remove());
             els.paperHands.style.display = 'none';
             
+            // 清理神明特效
+            document.body.className = 'active-cursor'; 
+            document.querySelectorAll('.god-beam, .god-stamp, .god-pill').forEach(el => el.remove());
+            
             // 清理视频层
             els.godVideoLayer.style.display = 'none';
             els.godVideo.pause();
@@ -1809,6 +1852,10 @@
         function resetGame() {
             cleanup();
             const dict = i18n[currentLang];
+            
+            // ★★★ 核心修复：更新回合ID，解决僵尸定时器问题 ★★★
+            gameRoundId++;
+            
             els.bgmWin.pause(); els.bgmWin.currentTime = 0;
             els.bgmLoss.pause(); els.bgmLoss.currentTime = 0;
             els.bgmGodWin.pause(); els.bgmGodWin.currentTime = 0; // 停止神明BGM
@@ -1822,9 +1869,11 @@
             els.marginBar.style.width = '100%'; els.marginBar.style.background = '#00ff00';
             els.score.innerText = '0'; els.combo.innerText = '0'; 
             els.statusText.innerText = dict.status_safu; els.statusText.style.color = "#00ff00";
+            
             els.victory.style.display = 'none'; els.loss.style.display = 'none';
             document.body.style.cursor = '';
             document.title = dict.page_title_trading; 
+            
             els.txLog.innerHTML = ''; els.txLog.style.display = 'flex';
             clearInterval(timers.log); timers.log = setInterval(addTxLog, 400); 
             els.trollbox.style.display = 'flex'; els.chatContent.innerHTML = '';
@@ -1836,12 +1885,14 @@
                 timers.chat = setTimeout(scheduleNextChat, Math.random() * 600 + 200);
             }
             scheduleNextChat();
+            
             initChart();
             startNewsTicker();
             moveBoss();
+            
             timers.move = setInterval(moveBoss, 1500);
             timers.spawn = setInterval(() => { 
-                if(!state.isGameOver && !state.isRugPull) {
+                if(!state.isGameOver && !state.isRugPull && !state.activeGod) { // 神明模式不生成垃圾干扰
                     const rand = Math.random();
                     if (rand < 0.15) {
                         createInfluencer();
