@@ -368,6 +368,75 @@
         .loading-text { font-size: 24px; color: #00ff00; margin-bottom: 20px; letter-spacing: 2px; }
         .loading-bar-bg { width: 300px; height: 10px; background: #111; border: 2px solid #00ff00; padding: 2px; }
         #loading-bar-fill { width: 0%; height: 100%; background: #00ff00; transition: width 0.1s linear; box-shadow: 0 0 10px #00ff00; }
+
+        /* ================= 神明降临界面 (样式) ================= */
+        #god-selection-screen {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background: rgba(0, 0, 0, 0.96); z-index: 9500;
+            display: none; /* 默认隐藏 */
+            flex-direction: column; justify-content: center; align-items: center;
+            cursor: default;
+        }
+
+        .god-title {
+            color: #ffd700; font-size: 48px; font-family: "Impact", sans-serif;
+            text-shadow: 0 0 20px #ffd700; margin-bottom: 40px; text-transform: uppercase;
+            letter-spacing: 3px; text-align: center;
+            animation: pulseGold 2s infinite;
+        }
+
+        .god-container {
+            display: flex; gap: 20px; justify-content: center; flex-wrap: wrap;
+        }
+
+        .god-card {
+            width: 240px; height: 350px;
+            background: #111; border: 2px solid #333; border-radius: 10px;
+            display: flex; flex-direction: column; align-items: center; padding: 0;
+            cursor: pointer; transition: all 0.2s; position: relative; overflow: hidden;
+        }
+
+        .god-card:hover { transform: scale(1.05) translateY(-10px); z-index: 10; }
+        
+        /* 四个神的专属色调 */
+        .god-card.base:hover { border-color: #0052ff; box-shadow: 0 0 40px #0052ff; }
+        .god-card.pump:hover { border-color: #00ff00; box-shadow: 0 0 40px #00ff00; }
+        .god-card.binance:hover { border-color: #f3ba2f; box-shadow: 0 0 40px #f3ba2f; }
+        .god-card.sol:hover { border-color: #9945ff; box-shadow: 0 0 40px #14f195; }
+
+        /* 头像容器：支持单人和双人 */
+        .god-avatar-box {
+            width: 100%; height: 200px; display: flex; 
+            border-bottom: 2px solid #333; overflow: hidden;
+            background: #000;
+        }
+        
+        .god-avatar-box img {
+            height: 100%; object-fit: cover; 
+            filter: grayscale(100%) brightness(0.6); transition: all 0.3s;
+        }
+        
+        /* 单人：占满宽度 */
+        .img-single { width: 100%; }
+        /* 双人：各占一半 */
+        .img-duo { width: 50%; }
+
+        .god-card:hover .god-avatar-box img { filter: grayscale(0%) brightness(1); }
+
+        .god-info { padding: 15px; text-align: center; width: 100%; flex: 1; display: flex; flex-direction: column; }
+        .god-name { font-size: 22px; font-weight: 900; color: #fff; margin-bottom: 5px; text-transform: uppercase; font-family: "Impact", sans-serif; letter-spacing: 1px;}
+        .god-desc { font-size: 13px; color: #aaa; line-height: 1.4; margin-bottom: 10px; font-family: "Courier New", monospace;}
+        
+        .god-btn {
+            margin-top: auto; width: 100%; padding: 12px; border: none; 
+            font-weight: 900; cursor: pointer; text-transform: uppercase; color: #000;
+            font-family: "Arial Black", sans-serif; font-size: 16px;
+        }
+        
+        .base .god-btn { background: #0052ff; color: white; }
+        .pump .god-btn { background: #00ff00; }
+        .binance .god-btn { background: #f3ba2f; }
+        .sol .god-btn { background: linear-gradient(90deg, #9945ff 0%, #14f195 100%); color: white; }
     </style>
 </head>
 <body>
@@ -441,6 +510,57 @@
         </div>
         <div id="money-bag" class="entity">💰</div>
         <div id="speech-bubble"></div>
+    </div>
+
+    <div id="god-selection-screen">
+        <div class="god-title">⚠️ SYSTEM FAILURE... CALL FOR HELP?</div>
+        <div class="god-container">
+            <div class="god-card base" onclick="console.log('Selected Base')">
+                <div class="god-avatar-box">
+                    <img src="god_base_1.jpg" class="img-duo" onerror="this.src='chillhouse.png'">
+                    <img src="god_base_2.jpg" class="img-duo" onerror="this.src='chillhouse.png'">
+                </div>
+                <div class="god-info">
+                    <div class="god-name">Based Bros</div>
+                    <div class="god-desc">"Stay Based."<br>Ability: L2 Blue Beam</div>
+                    <button class="god-btn">SUMMON</button>
+                </div>
+            </div>
+            
+            <div class="god-card pump" onclick="console.log('Selected Pump')">
+                <div class="god-avatar-box">
+                    <img src="god_pump.jpg" class="img-single" onerror="this.src='chillhouse.png'">
+                </div>
+                <div class="god-info">
+                    <div class="god-name">Pill Master</div>
+                    <div class="god-desc">"Dev is asleep."<br>Ability: Green Candle Storm</div>
+                    <button class="god-btn">SUMMON</button>
+                </div>
+            </div>
+            
+            <div class="god-card binance" onclick="console.log('Selected Binance')">
+                <div class="god-avatar-box">
+                    <img src="god_binance_1.jpg" class="img-duo" onerror="this.src='chillhouse.png'">
+                    <img src="god_binance_2.jpg" class="img-duo" onerror="this.src='chillhouse.png'">
+                </div>
+                <div class="god-info">
+                    <div class="god-name">CEX Emperors</div>
+                    <div class="god-desc">"Funds are SAFU. 4."<br>Ability: Spot Listing Smash</div>
+                    <button class="god-btn">SUMMON</button>
+                </div>
+            </div>
+            
+            <div class="god-card sol" onclick="console.log('Selected Sol')">
+                <div class="god-avatar-box">
+                    <img src="god_sol.jpg" class="img-single" onerror="this.src='chillhouse.png'">
+                </div>
+                <div class="god-info">
+                    <div class="god-name">Glass Chewer</div>
+                    <div class="god-desc">"Only possible on Sol"<br>Ability: TPS Overload</div>
+                    <button class="god-btn">SUMMON</button>
+                </div>
+            </div>
+        </div>
     </div>
 
     <div id="news-ticker-container">
@@ -886,7 +1006,13 @@
 
         // ================= 1. 修改资源列表 (自动生成43张推特图) =================
         const assetList = [
-            'login_bg.jpg', // 必须加上这个！
+            'login_bg.jpg', 
+            // 新增的神明头像 (JPG格式)：
+            'god_base_1.jpg', 'god_base_2.jpg',
+            'god_pump.jpg',
+            'god_binance_1.jpg', 'god_binance_2.jpg',
+            'god_sol.jpg',
+            // 原有资源：
             'chillhouse.png', 'chillhouse_rage.png', 'chillhouse_defeated.png', 
             'tweet1.png', 'tweet2.png', 'tweet3.png', 'tweet4.png', 'tweet5.png',
             'win.mp3', 'loss.mp3'
@@ -1582,3 +1708,4 @@
     </script>
 </body>
 </html>
+
