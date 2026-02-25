@@ -187,7 +187,7 @@
         @keyframes panic { 0% { opacity: 0.8; } 50% { opacity: 1; filter: brightness(1.5); } 100% { opacity: 0.8; } }
         @keyframes microShake { 0% { transform: translate(0, 0); } 25% { transform: translate(2px, 2px); } 50% { transform: translate(-2px, -2px); } 75% { transform: translate(2px, -2px); } 100% { transform: translate(0, 0); } }
 
-        /* ================= Trollbox 聊天室 ================= */
+        /* ================= Trollbox 聊天室 (V2.0) ================= */
         #trollbox {
             position: fixed; right: 20px; bottom: 50px; width: 320px; height: 420px;
             background: rgba(0, 10, 0, 0.9); border: 2px solid #00ff00;
@@ -593,31 +593,37 @@
         let state = { bossHp: 100, playerMargin: 100, score: 0, combo: 0, isGameOver: true, isRaged: false, isShielded: false, isFomo: false, isFoggy: false, isFrozen: false, isForked: false, isRugPull: false };
         let timers = { move: null, drain: null, spawn: null, event: null, fomo: null, hitRecovery: null, log: null, chat: null, hold: null, chart: null, news: null };
 
-        // ================= K线图 =================
+        // ================= K线图逻辑 =================
         let candles = [];
         const ctx = els.chartCanvas.getContext('2d');
+        
         function initChart() {
             els.chartCanvas.width = window.innerWidth;
             els.chartCanvas.height = window.innerHeight;
             candles = [];
             for(let i=0; i<50; i++) candles.push({h: 0.5, c: 0}); 
         }
+
         function updateChart(actionType) {
             let change = 0;
             if (actionType === 1) change = 0.05; 
             else if (actionType === -1) change = -0.05; 
             else change = (Math.random() - 0.5) * 0.02; 
+
             let last = candles[candles.length-1].h;
             let newH = Math.max(0.1, Math.min(0.9, last - change)); 
             let color = change < 0 ? '#00ff00' : (change > 0 ? '#ff0000' : '#555'); 
+            
             candles.push({h: newH, c: color});
             if(candles.length > 60) candles.shift();
             drawChart();
         }
+
         function drawChart() {
             ctx.clearRect(0, 0, els.chartCanvas.width, els.chartCanvas.height);
             const w = els.chartCanvas.width / 50;
             const h = els.chartCanvas.height;
+            
             candles.forEach((c, i) => {
                 ctx.fillStyle = c.c;
                 ctx.globalAlpha = 0.3;
@@ -628,32 +634,35 @@
             });
         }
 
-        // ================= 新闻 =================
+        // ================= 假新闻逻辑 =================
         function startNewsTicker() {
             const items = i18n[currentLang].news_items;
             let content = items.join("  +++  ") + "  +++  ";
             els.newsTicker.innerText = content;
         }
 
-        // ================= 特效 =================
+        // ================= 故障特效 =================
         function triggerGlitch() {
             document.body.classList.add('glitch-effect');
             playSound('glitch');
             setTimeout(() => document.body.classList.remove('glitch-effect'), 200);
         }
+
         function triggerShake() {
             document.body.classList.add('shake-hard');
             setTimeout(() => document.body.classList.remove('shake-hard'), 300);
         }
 
-        // ================= 语言 =================
+        // ================= 语言切换逻辑 =================
         function toggleLanguage() {
             currentLang = currentLang === 'en' ? 'zh' : 'en';
             applyLanguage();
         }
+
         function applyLanguage() {
             const data = i18n[currentLang];
             els.langBtn.innerText = currentLang === 'en' ? '[ EN / CN ]' : '[ CN / EN ]';
+            
             document.querySelectorAll('[data-i18n]').forEach(el => {
                 const key = el.getAttribute('data-i18n');
                 if (data[key]) el.innerText = data[key];
@@ -662,19 +671,22 @@
                 const key = el.getAttribute('data-i18n-placeholder');
                 if (data[key]) el.placeholder = data[key];
             });
+
             if (els.login.style.display !== 'none') {
                 document.title = data.page_title_loading;
             } else {
                 updatePageTitle();
             }
+
             if (!state.isFomo && !state.isRugPull && !state.isGameOver) {
                 els.statusText.innerText = data.status_safu;
             }
             if(state.isGameOver === false) startNewsTicker();
         }
+        
         applyLanguage();
 
-        // ================= 音效 & 预加载 =================
+        // ================= 音效与预加载 =================
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         function playTone(freq, type, dur, vol) {
             if (audioCtx.state === 'suspended') audioCtx.resume();
@@ -685,6 +697,8 @@
             gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + dur);
             osc.start(); osc.stop(audioCtx.currentTime + dur);
         }
+
+        // 增强音效函数
         function playSound(type) {
             if (audioCtx.state === 'suspended') audioCtx.resume();
             if (type === 'glitch') {
@@ -697,6 +711,7 @@
                 if(sounds[type]) sounds[type]();
             }
         }
+
         const sounds = {
             hit: (combo = 0) => { let pitch = Math.min(800, 200 + (combo * 50)); playTone(pitch, 'square', 0.1, 0.3); },
             shield: () => playTone(800, 'sine', 0.05, 0.5), 
@@ -729,41 +744,127 @@
             }
         };
 
+        const chatUsers = ["ElonMusk", "Vitalik", "CZ_Binance", "Satoshi", "PepeKing", "DogeKiller", "MoonBoi", "DiamondHands", "ToTheMoon", "WAGMI_BOY", "Sniper007", "SolanaDegens", "JeetHunter", "RugChecker", "AlphaCaller", "BasedGod", "MemeLord", "CryptoPunk", "PjeetSlayer", "GasEater"];
+        
+        const chatMsgs = [
+            {t: "LFG!!! 🚀🚀🚀", c: "msg-buy"}, {t: "Buying the dip...", c: "msg-buy"},
+            {t: "WAGMI guys", c: "msg-buy"}, {t: "Just aped 10 SOL", c: "msg-buy"},
+            {t: "HODL 💎🙌", c: "msg-buy"}, {t: "Dev is based", c: "msg-buy"},
+            {t: "Floor is holding strong", c: "msg-buy"}, {t: "Send it to Valhalla!", c: "msg-buy"},
+            {t: "FOMO IN NOW", c: "msg-buy"}, {t: "100x soon", c: "msg-buy"},
+            {t: "Burn the supply!", c: "msg-buy"}, {t: "Thanks for cheap bags", c: "msg-buy"},
+            {t: "Green candle incoming", c: "msg-buy"}, {t: "Whale bought!", c: "msg-buy"},
+            {t: "Next Pepe confirmed", c: "msg-buy"}, {t: "Community takeover!", c: "msg-buy"},
+            {t: "Dev do something!", c: "msg-sell"}, {t: "Is this a rug?", c: "msg-sell"},
+            {t: "Sell sell sell!!", c: "msg-sell"}, {t: "Scam token!", c: "msg-sell"},
+            {t: "I smell a rug...", c: "msg-sell"}, {t: "Chart looks like trash", c: "msg-sell"},
+            {t: "Dump it!", c: "msg-sell"}, {t: "Jeets dumping...", c: "msg-sell"},
+            {t: "Dev wallet moving funds", c: "msg-sell"}, {t: "Honeypot!!!", c: "msg-sell"},
+            {t: "Liquidity unlocked?", c: "msg-sell"}, {t: "Slow rug", c: "msg-sell"},
+            {t: "Rekt city", c: "msg-sell"}, {t: "Exit liquidity", c: "msg-sell"},
+            {t: "Where is marketing?", c: ""}, {t: "CA?", c: ""}, 
+            {t: "Wen Binance?", c: ""}, {t: "Admins asleep?", c: ""},
+            {t: "My wife left me for this coin", c: "msg-fud"}, {t: "Bot detected", c: "msg-mod"},
+            {t: "Link?", c: ""}, {t: "Slippage?", c: ""},
+            {t: "Why is chart red?", c: ""}, {t: "Wen lambo?", c: ""},
+            {t: "Bonding curve stuck", c: "msg-fud"}, {t: "Raydium lag", c: "msg-fud"}
+        ];
+
+        function addChatMessage() {
+            const user = chatUsers[Math.floor(Math.random() * chatUsers.length)];
+            const msgObj = chatMsgs[Math.floor(Math.random() * chatMsgs.length)];
+            
+            const div = document.createElement('div');
+            div.className = 'chat-msg';
+            div.innerHTML = `<span class="chat-user">${user}:</span> <span class="chat-text ${msgObj.c}">${msgObj.t}</span>`;
+            
+            els.chatContent.appendChild(div);
+            if (els.chatContent.children.length > 50) els.chatContent.removeChild(els.chatContent.firstChild);
+            
+            let count = 42000 + Math.floor(Math.random() * 1000);
+            els.onlineCount.innerText = `🔴 ${count.toLocaleString()} ON`;
+        }
+
+        function shareTwitter(isWin) {
+            const dict = i18n[currentLang];
+            const list = isWin ? dict.win_shares : dict.loss_shares;
+            const text = list[Math.floor(Math.random() * list.length)] + " #chillhouse";
+            const url = "https://twitter.com/intent/tweet?text=" + encodeURIComponent(text);
+            window.open(url, '_blank');
+        }
+
+        const txMessages = ["TX: 0x3a...f9 sent 500 SOL", "WHALE ALERT: 2000 SOL Moved", "MEV Bot: Sandwich Attack!", "Gas Fee: 0.004 SOL", "Liquidity Removed: -20%", "PumpFun: Token Created", "Smart Wallet: Buying Dip", "Chillhouse: Dump Incoming...", "SEC: Monitoring...", "System: High Congestion", "TX Failed: Slippage Error", "Sniper Bot: Target Acquired", "DAO: Proposal Passed", "Bridge: Assets Locked", "Validator: Block Confirmed"];
+
+        function addTxLog() {
+            const msg = txMessages[Math.floor(Math.random() * txMessages.length)];
+            const div = document.createElement('div');
+            div.className = 'tx-line';
+            div.innerText = `> [${Math.floor(Date.now()/1000).toString().slice(-4)}] ${msg}`;
+            els.txLog.appendChild(div);
+            if (els.txLog.children.length > 10) els.txLog.removeChild(els.txLog.firstChild);
+        }
+
+        document.addEventListener('mousemove', (e) => {
+            if (els.login.style.display === 'none' && !state.isGameOver) {
+                const dot = document.createElement('div');
+                dot.className = 'trail-dot';
+                dot.style.left = e.clientX + 'px';
+                dot.style.top = e.clientY + 'px';
+                document.body.appendChild(dot);
+                setTimeout(() => dot.remove(), 500);
+            }
+        });
+
+        // ================= 1. 修改资源列表 (加入 login_bg.jpg) =================
         const assetList = [
+            'login_bg.jpg', 
             'chillhouse.png', 'chillhouse_rage.png', 'chillhouse_defeated.png', 
             'tweet1.png', 'tweet2.png', 'tweet3.png', 'tweet4.png', 'tweet5.png',
             'win.mp3', 'loss.mp3'
         ];
+
+        // ================= 2. 修改预加载逻辑 (增加内存驻留) =================
+        // 建立全局缓存，防止浏览器垃圾回收清除已加载的图片
+        window.gameAssets = {}; 
+
         function preloadAssets(callback) {
             let loaded = 0;
             const total = assetList.length;
+            
             function check() {
                 loaded++;
                 const pct = Math.floor((loaded / total) * 100);
-                els.loadingPercent.innerText = pct + '%';
-                els.loadingFill.style.width = pct + '%';
+                if(els.loadingPercent) els.loadingPercent.innerText = pct + '%';
+                if(els.loadingFill) els.loadingFill.style.width = pct + '%';
+                
                 if (loaded >= total) {
+                    // 稍微延迟一点点，确保最后一张图解码完成
                     setTimeout(() => {
-                        els.loadingOverlay.style.opacity = 0;
+                        if(els.loadingOverlay) els.loadingOverlay.style.opacity = 0;
                         setTimeout(() => {
-                            els.loadingOverlay.style.display = 'none';
+                            if(els.loadingOverlay) els.loadingOverlay.style.display = 'none';
                             callback();
                         }, 500);
-                    }, 500);
+                    }, 200);
                 }
             }
+
             if (total === 0) check();
+
             assetList.forEach(src => {
                 if (src.endsWith('.mp3')) {
                     const audio = new Audio();
                     audio.oncanplaythrough = check;
                     audio.onerror = check; 
                     audio.src = src;
+                    audio.load(); // 强制触发加载
+                    window.gameAssets[src] = audio; // 存入缓存
                 } else {
                     const img = new Image();
                     img.onload = check;
                     img.onerror = check;
                     img.src = src;
+                    window.gameAssets[src] = img; // 存入缓存，这是关键！
                 }
             });
         }
@@ -771,11 +872,15 @@
         const bootLines = [
             "> INITIALIZING SYSTEM KERNEL...", "> LOADING MODULE: CRYPTO_SNIPER_V18.2", "> CONNECTING TO SOLANA MAINNET RPC...", "> [SUCCESS] CONNECTION ESTABLISHED (14ms)", "> DETECTING TARGET WALLET...", "> <span class='intro-highlight'>TARGET FOUND: CHILLHOUSE.SOL</span>", "> ANALYZING ON-CHAIN DATA...", "> <span class='intro-warn'>WARNING: HIGH VOLATILITY DETECTED</span>", "> <span class='intro-warn'>WARNING: SCAM TWEETS DETECTED</span>", "> EXECUTING PROTOCOL: TWEET_STORM_ANALYSIS..."
         ];
+
         const fastLines = ["DECRYPTING PRIVATE KEY...", "BYPASSING FIREWALL...", "INJECTING EXPLOIT...", "LOADING ASSETS...", "COMPILING SHADERS...", "SYNCING BLOCKCHAIN...", "ALLOCATING MEMORY...", "OVERRIDING SECURITY...", "ACCESS GRANTED.", "SYSTEM OVERLOAD...", "MEMORY LEAK DETECTED...", "DUMPING CORE..."];
 
         function playBootSequence() {
             if (audioCtx.state === 'suspended') audioCtx.resume().catch(()=>{});
+            
+            // 先显示 intro layer
             els.intro.style.display = 'flex';
+            
             let delay = 0;
             bootLines.forEach((line, index) => {
                 delay += Math.random() * 150 + 50; 
@@ -787,6 +892,7 @@
                     p.innerHTML = line;
                     els.intro.appendChild(p);
                     els.intro.scrollTop = els.intro.scrollHeight;
+                    
                     if (index === bootLines.length - 1) {
                         const blinker = document.createElement('div');
                         blinker.className = 'intro-text cursor-blink';
@@ -797,6 +903,7 @@
                 }, delay);
             });
         }
+
         function startFastSequence() {
             if (introSkipped) return;
             let currentLine = 0;
@@ -816,6 +923,7 @@
                 currentLine++;
             }, 50); 
         }
+
         function startChaosSequence() {
             if (introSkipped) return;
             const chars = "01010101!@#$%^&*()_+<>?:{}|ZXCVBNMASDFGHJKLQWERTYUIOP";
@@ -835,6 +943,7 @@
                 }
             }, 10); 
         }
+
         function finishIntroAndStartStorm() {
             if (introSkipped) return;
             introSkipped = true; 
@@ -845,6 +954,7 @@
                 playTweetStorm();
             }, 500);
         }
+
         function playTweetStorm() {
             els.tweetStorm.style.display = 'block';
             const totalTweets = 43; 
@@ -857,18 +967,28 @@
             }
             setTimeout(finishTweetStorm, currentDelay + 1500);
         }
+
         function spawnTweet(index) {
             sounds.tweet();
             const img = document.createElement('img');
             img.src = `tweet${index}.png`;
             img.onerror = function() { this.src = 'chillhouse.png'; this.onerror = function() { this.src = 'chillhouse.jpg'; }; this.style.border = '2px solid red'; };
             img.className = 'tweet-img';
-            const w = window.innerWidth; const h = window.innerHeight;
-            const imgW = Math.min(w * 0.45, 600); const maxLeft = w - imgW - 20; const maxTop = h - 150; 
-            const left = Math.random() * maxLeft; const top = Math.random() * maxTop;
-            img.style.left = left + 'px'; img.style.top = top + 'px';
+            
+            const w = window.innerWidth;
+            const h = window.innerHeight;
+            const imgW = Math.min(w * 0.45, 600);
+            const maxLeft = w - imgW - 20;
+            const maxTop = h - 150; 
+
+            const left = Math.random() * maxLeft;
+            const top = Math.random() * maxTop;
+
+            img.style.left = left + 'px';
+            img.style.top = top + 'px';
             els.tweetStorm.appendChild(img);
         }
+
         function finishTweetStorm() {
             els.tweetStorm.style.transition = "opacity 0.8s";
             els.tweetStorm.style.opacity = 0;
@@ -883,49 +1003,27 @@
             }, 2000); 
         }
 
+        // 统一入口
         window.onload = function() {
+            // 延长Watchdog时间，适应预加载
             setTimeout(() => {
                 if (els.login.style.display !== 'flex' && !state.isGameOver && !introSkipped) {
                     console.warn("Watchdog: Forcing login screen");
                     introSkipped = true;
-                    els.loadingOverlay.style.display = 'none';
+                    els.loadingOverlay.style.display = 'none'; // 强制关预加载
                     els.intro.style.display = 'none';
                     els.tweetStorm.style.display = 'none';
                     els.login.style.display = 'flex';
                     els.login.style.opacity = 1;
                     document.body.classList.add('active-cursor');
                 }
-            }, 15000);
-            preloadAssets(() => { playBootSequence(); });
+            }, 15000); // 15秒兜底
+
+            // 开始预加载流程
+            preloadAssets(() => {
+                playBootSequence();
+            });
         };
-
-        const chatUsers = ["ElonMusk", "Vitalik", "CZ_Binance", "Satoshi", "PepeKing", "DogeKiller", "MoonBoi", "DiamondHands", "ToTheMoon", "WAGMI_BOY", "Sniper007", "SolanaDegens", "JeetHunter", "RugChecker", "AlphaCaller", "BasedGod", "MemeLord", "CryptoPunk", "PjeetSlayer", "GasEater"];
-        const chatMsgs = [
-            {t: "LFG!!! 🚀🚀🚀", c: "msg-buy"}, {t: "Buying the dip...", c: "msg-buy"}, {t: "WAGMI guys", c: "msg-buy"}, {t: "Just aped 10 SOL", c: "msg-buy"}, {t: "HODL 💎🙌", c: "msg-buy"}, {t: "Dev is based", c: "msg-buy"}, {t: "Floor is holding strong", c: "msg-buy"}, {t: "Send it to Valhalla!", c: "msg-buy"}, {t: "FOMO IN NOW", c: "msg-buy"}, {t: "100x soon", c: "msg-buy"}, {t: "Burn the supply!", c: "msg-buy"}, {t: "Thanks for cheap bags", c: "msg-buy"}, {t: "Green candle incoming", c: "msg-buy"}, {t: "Whale bought!", c: "msg-buy"}, {t: "Next Pepe confirmed", c: "msg-buy"}, {t: "Community takeover!", c: "msg-buy"},
-            {t: "Dev do something!", c: "msg-sell"}, {t: "Is this a rug?", c: "msg-sell"}, {t: "Sell sell sell!!", c: "msg-sell"}, {t: "Scam token!", c: "msg-sell"}, {t: "I smell a rug...", c: "msg-sell"}, {t: "Chart looks like trash", c: "msg-sell"}, {t: "Dump it!", c: "msg-sell"}, {t: "Jeets dumping...", c: "msg-sell"}, {t: "Dev wallet moving funds", c: "msg-sell"}, {t: "Honeypot!!!", c: "msg-sell"}, {t: "Liquidity unlocked?", c: "msg-sell"}, {t: "Slow rug", c: "msg-sell"}, {t: "Rekt city", c: "msg-sell"}, {t: "Exit liquidity", c: "msg-sell"},
-            {t: "Where is marketing?", c: ""}, {t: "CA?", c: ""}, {t: "Wen Binance?", c: ""}, {t: "Admins asleep?", c: ""}, {t: "My wife left me for this coin", c: "msg-fud"}, {t: "Bot detected", c: "msg-mod"}, {t: "Link?", c: ""}, {t: "Slippage?", c: ""}, {t: "Why is chart red?", c: ""}, {t: "Wen lambo?", c: ""}, {t: "Bonding curve stuck", c: "msg-fud"}, {t: "Raydium lag", c: "msg-fud"}
-        ];
-        function addChatMessage() {
-            const user = chatUsers[Math.floor(Math.random() * chatUsers.length)];
-            const msgObj = chatMsgs[Math.floor(Math.random() * chatMsgs.length)];
-            const div = document.createElement('div');
-            div.className = 'chat-msg';
-            div.innerHTML = `<span class="chat-user">${user}:</span> <span class="chat-text ${msgObj.c}">${msgObj.t}</span>`;
-            els.chatContent.appendChild(div);
-            if (els.chatContent.children.length > 50) els.chatContent.removeChild(els.chatContent.firstChild);
-            let count = 42000 + Math.floor(Math.random() * 1000);
-            els.onlineCount.innerText = `🔴 ${count.toLocaleString()} ON`;
-        }
-
-        const txMessages = ["TX: 0x3a...f9 sent 500 SOL", "WHALE ALERT: 2000 SOL Moved", "MEV Bot: Sandwich Attack!", "Gas Fee: 0.004 SOL", "Liquidity Removed: -20%", "PumpFun: Token Created", "Smart Wallet: Buying Dip", "Chillhouse: Dump Incoming...", "SEC: Monitoring...", "System: High Congestion", "TX Failed: Slippage Error", "Sniper Bot: Target Acquired", "DAO: Proposal Passed", "Bridge: Assets Locked", "Validator: Block Confirmed"];
-        function addTxLog() {
-            const msg = txMessages[Math.floor(Math.random() * txMessages.length)];
-            const div = document.createElement('div');
-            div.className = 'tx-line';
-            div.innerText = `> [${Math.floor(Date.now()/1000).toString().slice(-4)}] ${msg}`;
-            els.txLog.appendChild(div);
-            if (els.txLog.children.length > 10) els.txLog.removeChild(els.txLog.firstChild);
-        }
 
         function createFloatingText(x, y, text, color, fontSize = '24px') {
             const div = document.createElement('div');
@@ -935,6 +1033,7 @@
             document.body.appendChild(div);
             setTimeout(() => div.remove(), 1000);
         }
+
         function spawnCoins(x, y) {
             for(let i=0; i<5; i++) {
                 const coin = document.createElement('div');
@@ -946,6 +1045,7 @@
                 setTimeout(() => coin.remove(), 800);
             }
         }
+
         document.getElementById('connect-btn').addEventListener('click', () => {
             const name = document.getElementById('wallet-address').value.trim() || 'Anon Sniper';
             const dict = i18n[currentLang];
@@ -954,25 +1054,30 @@
             if (audioCtx.state === 'suspended') audioCtx.resume();
             resetGame();
         });
+
         function getRandomPos(w, h) {
             return { x: Math.random() * (window.innerWidth - w), y: Math.max(120, Math.random() * (window.innerHeight - h)) };
         }
+
         function moveBoss() {
             if (state.isGameOver || state.isFrozen || state.isRugPull) return;
             const dict = i18n[currentLang];
             const pos = getRandomPos(150, 150);
             els.chillhouse.style.left = pos.x + 'px'; els.chillhouse.style.top = pos.y + 'px';
             els.bubble.style.left = (pos.x + 80) + 'px'; els.bubble.style.top = (pos.y - 40) + 'px';
+            
             if (state.isForked) {
                 const p1 = getRandomPos(80, 80); const p2 = getRandomPos(80, 80);
                 els.clone1.style.left = p1.x + 'px'; els.clone1.style.top = p1.y + 'px';
                 els.clone2.style.left = p2.x + 'px'; els.clone2.style.top = p2.y + 'px';
             }
+
             if (state.isShielded) {
                 els.bubble.innerText = dict.bubble_shield;
                 els.bubble.style.color = "#00ffff"; els.bubble.style.opacity = 1;
                 return;
             }
+
             if (Math.random() < 0.2 && !state.isForked) { 
                 state.isShielded = true;
                 els.chillhouse.classList.add('shielded');
@@ -985,6 +1090,7 @@
                 els.bubble.style.opacity = 1;
             }
         }
+
         function updatePageTitle() {
             if (state.isGameOver) return;
             const dict = i18n[currentLang];
@@ -996,71 +1102,40 @@
             else document.title = dict.page_title_rekt;
         }
 
-        // ================= 事件卡组逻辑 (新增) =================
-        const allEventTypes = ['rug', 'musk', 'sec', 'fork', 'crash', 'printer'];
-        let eventDeck = [];
-
-        function getNextEventFromDeck() {
-            if (eventDeck.length === 0) {
-                eventDeck = [...allEventTypes];
-                for (let i = eventDeck.length - 1; i > 0; i--) {
-                    const j = Math.floor(Math.random() * (i + 1));
-                    [eventDeck[i], eventDeck[j]] = [eventDeck[j], eventDeck[i]];
-                }
-            }
-            return eventDeck.pop();
-        }
-
         function triggerMarketEvent() {
             if (state.isGameOver) return;
             const dict = i18n[currentLang];
-            const eventType = getNextEventFromDeck();
-
-            switch(eventType) {
-                case 'rug': startRugPull(); break;
-                case 'musk':
-                    state.isFrozen = true;
-                    els.eventOverlay.innerText = dict.event_musk;
-                    els.eventOverlay.style.color = "#00ff00"; 
-                    els.eventOverlay.style.display = 'block';
-                    els.bubble.innerText = dict.bubble_musk;
-                    els.bubble.style.color = "#00aa00"; 
-                    els.bubble.style.fontWeight = "900"; 
-                    els.bubble.style.opacity = 1;
-                    setTimeout(() => { state.isFrozen = false; els.eventOverlay.style.display = 'none'; moveBoss(); }, 3000);
-                    break;
-                case 'sec':
-                    els.eventOverlay.innerText = dict.event_sec;
-                    els.eventOverlay.style.color = "red"; 
-                    els.eventOverlay.style.display = 'block';
-                    setTimeout(() => { if (!state.isGameOver) { document.body.classList.add('fog-mode'); state.isFoggy = true; } }, 2000);
-                    setTimeout(() => { document.body.classList.remove('fog-mode'); state.isFoggy = false; els.eventOverlay.style.display = 'none'; }, 5000);
-                    break;
-                case 'fork':
-                    els.eventOverlay.innerText = dict.event_fork;
-                    els.eventOverlay.style.color = "orange"; 
-                    els.eventOverlay.style.display = 'block';
-                    state.isForked = true; sounds.fork();
-                    els.clone1.style.display = 'block'; els.clone2.style.display = 'block';
-                    setTimeout(() => { state.isForked = false; els.clone1.style.display = 'none'; els.clone2.style.display = 'none'; els.eventOverlay.style.display = 'none'; }, 5000);
-                    break;
-                case 'crash':
-                    els.eventOverlay.innerText = dict.event_crash;
-                    els.eventOverlay.style.color = "white"; 
-                    els.eventOverlay.style.display = 'block';
-                    document.body.classList.add('crash-mode');
-                    setTimeout(() => { document.body.classList.remove('crash-mode'); els.eventOverlay.style.display = 'none'; }, 4000);
-                    break;
-                case 'printer':
-                    const pos = getRandomPos(80, 80);
-                    els.moneyBag.style.left = pos.x + 'px'; 
-                    els.moneyBag.style.top = pos.y + 'px';
-                    els.moneyBag.style.display = 'block';
-                    els.eventOverlay.innerText = dict.event_printer;
-                    els.eventOverlay.style.color = "#00ffff"; 
-                    els.eventOverlay.style.display = 'block';
-                    setTimeout(() => { els.moneyBag.style.display = 'none'; els.eventOverlay.style.display = 'none'; }, 2000);
-                    break;
+            const rand = Math.random();
+            
+            if (rand < 0.1) {
+                startRugPull();
+            }
+            else if (rand < 0.3) { 
+                state.isFrozen = true;
+                els.eventOverlay.innerText = dict.event_musk;
+                els.eventOverlay.style.color = "#00ff00"; els.eventOverlay.style.display = 'block';
+                els.bubble.innerText = dict.bubble_musk;
+                els.bubble.style.color = "#00aa00"; els.bubble.style.fontWeight = "900"; els.bubble.style.opacity = 1;
+                setTimeout(() => { state.isFrozen = false; els.eventOverlay.style.display = 'none'; moveBoss(); }, 3000);
+            }
+            else if (rand < 0.5) { 
+                els.eventOverlay.innerText = dict.event_sec;
+                els.eventOverlay.style.color = "red"; els.eventOverlay.style.display = 'block';
+                setTimeout(() => { if (!state.isGameOver) { document.body.classList.add('fog-mode'); state.isFoggy = true; } }, 2000);
+                setTimeout(() => { document.body.classList.remove('fog-mode'); state.isFoggy = false; els.eventOverlay.style.display = 'none'; }, 5000);
+            }
+            else if (rand < 0.7) { 
+                els.eventOverlay.innerText = dict.event_fork;
+                els.eventOverlay.style.color = "orange"; els.eventOverlay.style.display = 'block';
+                state.isForked = true; sounds.fork();
+                els.clone1.style.display = 'block'; els.clone2.style.display = 'block';
+                setTimeout(() => { state.isForked = false; els.clone1.style.display = 'none'; els.clone2.style.display = 'none'; els.eventOverlay.style.display = 'none'; }, 5000);
+            }
+            else if (rand < 0.85) { 
+                els.eventOverlay.innerText = dict.event_crash;
+                els.eventOverlay.style.color = "white"; els.eventOverlay.style.display = 'block';
+                document.body.classList.add('crash-mode');
+                setTimeout(() => { document.body.classList.remove('crash-mode'); els.eventOverlay.style.display = 'none'; }, 4000);
             }
         }
 
@@ -1073,6 +1148,7 @@
             document.body.classList.add('rug-mode');
             els.eventOverlay.innerText = dict.event_rug;
             els.eventOverlay.style.color = "#ff0000"; els.eventOverlay.style.display = 'block'; els.eventOverlay.style.fontSize = "50px";
+            
             setTimeout(() => {
                 if(!state.isGameOver) {
                     state.isRugPull = false;
@@ -1086,8 +1162,7 @@
         }
 
         function spawnMoneyBag() {
-            // 这个函数现在只作为事件触发的回调，不再在随机循环中调用
-            if (!state.isGameOver && state.playerMargin < 60 && els.moneyBag.style.display === 'none') {
+            if (!state.isGameOver && state.playerMargin < 60 && Math.random() < 0.4 && els.moneyBag.style.display === 'none') {
                 const dict = i18n[currentLang];
                 const pos = getRandomPos(80, 80);
                 els.moneyBag.style.left = pos.x + 'px'; els.moneyBag.style.top = pos.y + 'px';
@@ -1120,6 +1195,7 @@
             state.playerMargin -= amount;
             if (state.playerMargin <= 0) { state.playerMargin = 0; triggerLoss(); }
             els.marginBar.style.width = state.playerMargin + '%';
+            
             if (state.playerMargin < 15) {
                 document.body.classList.add('critical'); document.body.classList.remove('warning');
                 els.marginBar.style.backgroundColor = 'darkred'; 
@@ -1140,15 +1216,18 @@
             sounds.hit(state.combo);
             state.score++; els.score.innerText = state.score;
             updateCombo(false); spawnCoins(x, y);
-            updateChart(1); 
+            updateChart(1); // 触发K线拉升
+
             const damage = (state.isFomo ? 10 : 5) * damageMultiplier; 
             const label = state.isFomo ? `${dict.float_crit}${damage}` : `-${damage}`;
             const color = state.isFomo ? 'gold' : 'red';
             createFloatingText(x, y, label, color, state.isFomo ? '36px' : '28px');
+
             state.bossHp -= damage;
-            updatePageTitle(); 
+            updatePageTitle(); // 更新标题
             if (state.bossHp <= 0) { state.bossHp = 0; triggerVictory(); return; }
             els.hpBar.style.width = state.bossHp + '%';
+
             if (state.bossHp <= 40 && !state.isRaged) {
                 state.isRaged = true;
                 els.chillhouse.src = 'chillhouse_rage.png'; 
@@ -1156,37 +1235,49 @@
             }
         }
 
-        // ================= 病毒式大V逻辑 (修改) =================
+        // ================= 新增实体的交互逻辑 (病毒式裂变) =================
         function createInfluencer() {
+            // 防止浏览器崩溃的硬限制
             if (document.querySelectorAll('.influencer-card').length > 15) return;
+
             const div = document.createElement('div');
             div.className = 'influencer-card';
             const pos = getRandomPos(250, 150);
-            div.style.left = pos.x + 'px'; div.style.top = pos.y + 'px';
+            div.style.left = pos.x + 'px';
+            div.style.top = pos.y + 'px';
             div.style.display = 'block';
+
             const dict = i18n[currentLang];
-            div.innerHTML = `<div class="influencer-text">${dict.inf_text}</div><button class="unfollow-btn">${dict.btn_unfollow}</button>`;
             
-            // 裂变逻辑
+            div.innerHTML = `
+                <div class="influencer-text">${dict.inf_text}</div>
+                <button class="unfollow-btn">${dict.btn_unfollow}</button>
+            `;
+
+            // 病毒逻辑：3秒不消除，自动裂变
             const viralTimer = setTimeout(() => {
                 if(state.isGameOver) return;
+                // 只有当元素还在DOM中时才裂变
                 if(document.body.contains(div)) {
-                    createInfluencer(); // 裂变出新的
-                    playSound('error'); 
+                    createInfluencer(); // 裂变！
+                    playSound('error'); // 烦人的提示音
                 }
             }, 3000);
 
+            // 点击消除
             div.querySelector('.unfollow-btn').onclick = (e) => {
                 e.stopPropagation();
-                clearTimeout(viralTimer);
+                clearTimeout(viralTimer); // 清除裂变计时器
                 div.remove();
                 playSound('unfollow');
                 state.playerMargin = Math.min(100, state.playerMargin + 5);
                 createFloatingText(e.clientX, e.clientY, "BLOCKED!", "cyan", "30px");
             };
+
             els.gameBoard.appendChild(div);
         }
 
+        // ================= 新增实体的交互逻辑 (钻石手) =================
         function killPaperHands() {
             playSound('hit');
             els.paperHands.style.display = 'none';
@@ -1195,11 +1286,13 @@
             state.playerMargin = Math.min(100, state.playerMargin + 50);
             createFloatingText(window.innerWidth/2, window.innerHeight/2, dict.float_paper_win, "gold", "50px");
         }
+
         els.paperHands.addEventListener('mousedown', (e) => {
             e.stopPropagation();
             els.paperHands.classList.add('holding');
             timers.hold = setTimeout(killPaperHands, 1000);
         });
+
         els.paperHands.addEventListener('mouseup', (e) => {
             if(els.paperHands.style.display !== 'none') {
                 clearTimeout(timers.hold);
@@ -1215,6 +1308,7 @@
             if (state.isGameOver) return;
             const dict = i18n[currentLang];
             e.stopPropagation();
+
             if (state.isRugPull) {
                 sounds.error();
                 createFloatingText(e.clientX, e.clientY, dict.float_trapped, "red", "40px");
@@ -1222,17 +1316,20 @@
                 triggerGlitch();
                 return;
             }
+
             if (state.isShielded) {
                 sounds.shield(); state.isShielded = false;
                 els.chillhouse.classList.remove('shielded');
                 els.bubble.innerText = dict.bubble_shield_break; els.bubble.style.color = "red";
                 return;
             }
+
             if (state.isRaged && Math.random() < 0.2 && !state.isFrozen) {
                 sounds.miss(); els.bubble.innerText = dict.bubble_slip;
                 updateCombo(true); moveBoss();
                 return;
             }
+            
             els.chillhouse.classList.add('glitch-hit');
             setTimeout(() => els.chillhouse.classList.remove('glitch-hit'), 200);
             hitBoss(e.clientX, e.clientY, 1);
@@ -1265,6 +1362,7 @@
             sounds.heal();
             createFloatingText(e.clientX, e.clientY, dict.float_heal, "#00ff00", "30px");
             state.playerMargin = Math.min(100, state.playerMargin + 30); 
+            // 立即刷新状态，消除红色特效
             drainMargin(0); 
             els.marginBar.style.width = state.playerMargin + '%';
             els.statusText.innerText = dict.status_safu; els.statusText.style.color = "cyan";
@@ -1287,12 +1385,14 @@
         els.gameBoard.addEventListener('mousedown', (e) => {
             if (state.isGameOver) return;
             const dict = i18n[currentLang];
+            
             if (state.isRugPull) {
                 sounds.error();
                 createFloatingText(e.clientX, e.clientY, dict.float_trapped, "red", "40px");
                 drainMargin(50);
                 return;
             }
+
             sounds.miss(); drainMargin(5); updateCombo(true);
             els.bubble.innerText = dict.bubble_miss;
             createFloatingText(e.clientX, e.clientY, dict.float_miss, "#888", "18px"); 
@@ -1327,57 +1427,76 @@
             clearInterval(timers.chat); 
             clearTimeout(timers.fomo);
             clearTimeout(timers.hitRecovery);
+
             els.chillhouse.style.display = 'none';
             els.clone1.style.display = 'none'; els.clone2.style.display = 'none';
             els.decoyContainer.style.display = 'none';
             els.moneyBag.style.display = 'none';
             els.bubble.style.opacity = 0;
             els.eventOverlay.style.display = 'none';
+            // 新增实体清理
+            // 清理所有动态生成的大V卡片
             document.querySelectorAll('.influencer-card').forEach(el => el.remove());
             els.paperHands.style.display = 'none';
+            
             document.body.classList.remove('fog-mode', 'fomo-mode', 'crash-mode', 'rug-mode', 'warning', 'critical');
             els.gameBoard.style.transform = ''; 
             document.title = "GAME OVER";
         }
 
         function resetGame() {
+            // 防御性编程：先清理
             cleanup();
+
             const dict = i18n[currentLang];
             els.bgmWin.pause(); els.bgmWin.currentTime = 0;
             els.bgmLoss.pause(); els.bgmLoss.currentTime = 0;
+
             state = { bossHp: 100, playerMargin: 100, score: 0, combo: 0, isGameOver: false, isRaged: false, isShielded: false, isFomo: false, isFoggy: false, isFrozen: false, isForked: false, isRugPull: false };
-            eventDeck = []; // Reset deck
             els.chillhouse.src = 'chillhouse.png'; 
             els.chillhouse.classList.remove('shielded');
             els.chillhouse.style.display = 'block';
+
             els.hpBar.style.width = '100%'; els.hpBar.style.background = '#ff3333';
             els.marginBar.style.width = '100%'; els.marginBar.style.background = '#00ff00';
             els.score.innerText = '0'; els.combo.innerText = '0'; 
             els.statusText.innerText = dict.status_safu; els.statusText.style.color = "#00ff00";
+            
             els.victory.style.display = 'none'; els.loss.style.display = 'none';
             document.body.style.cursor = '';
             document.title = dict.page_title_trading; 
+
             els.txLog.innerHTML = ''; els.txLog.style.display = 'flex';
             clearInterval(timers.log); timers.log = setInterval(addTxLog, 400); 
+
+            // 聊天室重置
             els.trollbox.style.display = 'flex'; els.chatContent.innerHTML = '';
             clearInterval(timers.chat);
-            for(let i=0; i<25; i++) { addChatMessage(); }
+            for(let i=0; i<25; i++) {
+                addChatMessage();
+            }
+
             function scheduleNextChat() {
                 if(state.isGameOver) return;
                 addChatMessage();
                 timers.chat = setTimeout(scheduleNextChat, Math.random() * 600 + 200);
             }
             scheduleNextChat();
+            
+            // K线图重置
             initChart();
             startNewsTicker();
+
             moveBoss();
             timers.move = setInterval(moveBoss, 1500);
             timers.spawn = setInterval(() => { 
                 if(!state.isGameOver && !state.isRugPull) {
                     const rand = Math.random();
+                    // 15% 几率刷出喊单大V (使用新函数)
                     if (rand < 0.15) {
                         createInfluencer();
                     } 
+                    // 15% 几率刷出钻石手考验
                     else if (rand < 0.30 && els.paperHands.style.display === 'none') {
                         const pos = getRandomPos(80, 80);
                         els.paperHands.style.left = pos.x + 'px';
@@ -1385,16 +1504,18 @@
                         els.paperHands.style.display = 'block';
                         setTimeout(() => els.paperHands.style.display = 'none', 3000);
                     }
+                    // 原有逻辑
                     else if(rand < 0.5 && els.decoyContainer.style.display==='none') { 
                         const pos = getRandomPos(150,150); els.decoyContainer.style.left=pos.x+'px'; els.decoyContainer.style.top=pos.y+'px'; els.decoyContainer.style.display='block'; 
                         setTimeout(()=>{els.decoyContainer.style.display='none'}, 1500); 
                     }
+                    spawnMoneyBag();
                 }
             }, 2000);
             timers.drain = setInterval(() => {
                 updatePageTitle();
                 drainMargin(2);
-                updateChart(0); 
+                updateChart(0); // 自然震荡
             }, 1000);
             timers.event = setInterval(triggerMarketEvent, 8000); 
         }
