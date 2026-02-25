@@ -185,7 +185,7 @@
         /* 原有的仅震动动画 */
         body.critical #game-board { animation: microShake 0.1s infinite; }
 
-        /* ★★★ 修复部分开始：当同时发生暴跌和濒死时，应用带旋转的震动 ★★★ */
+        /* 当同时发生暴跌和濒死时，应用带旋转的震动 */
         body.crash-mode.critical #game-board { 
             animation: microShakeRotated 0.1s infinite !important; 
         }
@@ -210,7 +210,6 @@
             75% { transform: rotate(-15deg) scale(0.9) translate(2px, -2px); } 
             100% { transform: rotate(-15deg) scale(0.9) translate(0, 0); } 
         }
-        /* ★★★ 修复部分结束 ★★★ */
 
         /* ================= Trollbox 聊天室 (V2.0) ================= */
         #trollbox {
@@ -814,11 +813,16 @@
             els.onlineCount.innerText = `🔴 ${count.toLocaleString()} ON`;
         }
 
+        // 修改：在发推内容前增加特定句式和换行
         function shareTwitter(isWin) {
             const dict = i18n[currentLang];
             const list = isWin ? dict.win_shares : dict.loss_shares;
-            const text = list[Math.floor(Math.random() * list.length)] + " #chillhouse";
-            const url = "https://twitter.com/intent/tweet?text=" + encodeURIComponent(text);
+            const randomMsg = list[Math.floor(Math.random() * list.length)];
+            
+            // 构建最终文本：@chillhousesol + 换行 + 随机文案 + 话题
+            const finalMsg = ".@chillhousesol fuck you.\n\n" + randomMsg + " #chillhouse";
+            
+            const url = "https://twitter.com/intent/tweet?text=" + encodeURIComponent(finalMsg);
             window.open(url, '_blank');
         }
 
@@ -1136,7 +1140,7 @@
             else document.title = dict.page_title_rekt;
         }
 
-        // ================= 事件卡组逻辑 (新增) =================
+        // ================= 事件卡组逻辑 =================
         const allEventTypes = ['rug', 'musk', 'sec', 'fork', 'crash', 'printer'];
         let eventDeck = [];
 
@@ -1282,14 +1286,17 @@
             state.score++; els.score.innerText = state.score;
             updateCombo(false); spawnCoins(x, y);
             updateChart(1); 
+
             const damage = (state.isFomo ? 10 : 5) * damageMultiplier; 
             const label = state.isFomo ? `${dict.float_crit}${damage}` : `-${damage}`;
             const color = state.isFomo ? 'gold' : 'red';
             createFloatingText(x, y, label, color, state.isFomo ? '36px' : '28px');
+
             state.bossHp -= damage;
             updatePageTitle(); 
             if (state.bossHp <= 0) { state.bossHp = 0; triggerVictory(); return; }
             els.hpBar.style.width = state.bossHp + '%';
+
             if (state.bossHp <= 40 && !state.isRaged) {
                 state.isRaged = true;
                 els.chillhouse.src = 'chillhouse_rage.png'; 
