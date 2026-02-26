@@ -1092,9 +1092,22 @@
             if (isWin && state.activeGod) {
                 const godMsgs = [
                     `I lost everything, but ${state.activeGod.toUpperCase()} saved my bags! 😭🙌`,
-                    "Just got bailed out by the inner circle. Stay poor bears! 🤡",
+                    "Just got bailed out by ${state.activeGod.toUpperCase()}. Stay poor bears! 🤡",
                     "Infinite money glitch activated. Thanks for the exit liquidity! 💸",
-                    "My dad works at Nintendo... I mean, I know the devs. 📞"
+                    "Skill issue? No. I just called the CEO of Bitcoin. 📞😎",
+                    "My dad works at Nintendo... I mean, I know the devs. 📞",
+                    
+                    // 针对 Base (Jesse/Cobie)
+                    "Stay Based. Dev just got blue-pilled into oblivion. 🔵🛡️",
+                    
+                    // 针对 Pump (Alon)
+                    "I didn't buy the dip. I bought the bonding curve. 💊🟢",
+                    
+                    // 针对 Binance (CZ)
+                    "4. Dev is FUD. 4. I win. 4. 🔶🤫",
+                    
+                    // 针对 Solana (Toly)
+                    "50,000 TPS straight to the Dev's face. Speed kills. ⚡🟣"
                 ];
                 randomMsg = godMsgs[Math.floor(Math.random() * godMsgs.length)];
             } else {
@@ -2035,4 +2048,5 @@ const name = document.getElementById('wallet-address').value.trim() || 'Anon Sni
         }
     </script>
 </body>
+
 </html>
