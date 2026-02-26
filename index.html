@@ -514,6 +514,18 @@
         #god-video {
             width: 100%; height: 100%; object-fit: cover;
         }
+
+        /* ★★★ 修改：最终视频层 - 增加透明度过渡 ★★★ */
+    #final-video-layer {
+        display: none; 
+        position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; 
+        background: black; z-index: 10002;
+        
+        /* 初始状态完全透明 */
+        opacity: 0; 
+        /* 2秒钟的平滑渐变 */
+        transition: opacity 2s ease-in-out;
+        }
     </style>
 </head>
 <body>
@@ -534,6 +546,10 @@
     
     <div id="god-video-layer">
         <video id="god-video" playsinline></video>
+    </div>
+
+    <div id="final-video-layer" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:black; z-index:10002;">
+        <video id="final-video" style="width:100%; height:100%; object-fit:cover;" playsinline></video>
     </div>
 
     <div id="login-screen">
@@ -857,7 +873,10 @@
             // 新增
             godVideoLayer: document.getElementById('god-video-layer'),
             godVideo: document.getElementById('god-video'),
-            defeatedImg: document.getElementById('defeated-img')
+            defeatedImg: document.getElementById('defeated-img'),
+            // ★★★ 新增：注册最终视频层 ★★★
+            finalVideoLayer: document.getElementById('final-video-layer'),
+            finalVideo: document.getElementById('final-video')
         };
         let introSkipped = false;
         // ★★★ 新增：连败计数器 ★★★
@@ -1127,7 +1146,9 @@
             // 新增战败图资源
             'defeated_base.png', 'defeated_pump.png', 'defeated_binance.png', 'defeated_sol.png',
             // 新增神明胜利BGM
-            'god_win.mp3'
+            'god_win.mp3', 
+            // ★★★ 新增：在这里加入最终视频 ★★★
+            'god_ending.mp4'
         ];
         
         // 修复：自动将 tweet1.png 到 tweet43.png 全部加入预加载列表
@@ -1782,6 +1803,29 @@ const name = document.getElementById('wallet-address').value.trim() || 'Anon Sni
                 els.bgmGodWin.volume = 0.5;
                 els.bgmGodWin.currentTime = 0;
                 els.bgmGodWin.play().catch(e=>console.log(e));
+
+                // ★★★ 修改：BGM 结束后，执行渐隐渐显转场 ★★★
+                els.bgmGodWin.onended = function() {
+                    console.log("BGM ended. Starting cross-fade transition.");
+
+                    // 【新增这一行】移除绿色柱子光标，变回普通鼠标
+                    document.body.classList.remove('active-cursor');
+                    
+                    // 1. 先把视频层显示出来（此时它还是透明的 opacity:0）
+                    els.finalVideoLayer.style.display = 'block';
+                    els.finalVideo.src = 'god_ending.mp4';
+                    els.finalVideo.play().catch(e => console.error(e));
+
+                    // 2. 稍微延迟 50ms，让浏览器先渲染 display:block，再执行透明度变化
+                    setTimeout(() => {
+                        // 结算画面淡出
+                        els.victory.style.transition = "opacity 2s ease-in-out";
+                        els.victory.style.opacity = "0";
+
+                        // 视频层淡入
+                        els.finalVideoLayer.style.opacity = "1";
+                    }, 50);
+                };
             } else {
                 // 正常胜利
                 els.victory.querySelector('h1').innerText = dict.win_title;
@@ -1844,6 +1888,16 @@ const name = document.getElementById('wallet-address').value.trim() || 'Anon Sni
             els.godVideoLayer.style.display = 'none';
             els.godVideo.pause();
             els.godVideo.currentTime = 0;
+
+            // ★★★ 修改：清理最终视频层，并重置透明度 ★★★
+            els.finalVideoLayer.style.display = 'none';
+            els.finalVideoLayer.style.opacity = '0'; // 重置回透明
+            els.finalVideo.pause();
+            els.finalVideo.currentTime = 0;
+            
+            // ★★★ 重要：把结算画面的透明度改回来，否则下次赢了看不见 ★★★
+            els.victory.style.opacity = '1';
+            els.victory.style.transition = 'none'; // 移除过渡，瞬间显示
 
             els.gameBoard.style.transform = ''; 
             document.title = "GAME OVER";
@@ -1945,6 +1999,9 @@ const name = document.getElementById('wallet-address').value.trim() || 'Anon Sni
         function activateGodMode(godType) {
             // 隐藏选择界面
             document.getElementById('god-selection-screen').style.display = 'none';
+
+            // ★★★ 新增：播放视频时，移除绿色柱子光标，变回普通鼠标 ★★★
+            document.body.classList.remove('active-cursor');
             
             // 记录当前的神
             state.activeGod = godType;
